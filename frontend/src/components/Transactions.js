@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 
 const formatDate = (iso) => {
   try {
@@ -14,8 +14,7 @@ const Transactions = () => {
 
   useEffect(() => {
     const fetchTransactions = async () => {
-      const token = localStorage.getItem('token');
-      const res = await axios.get('/transactions', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.get('/transactions');
       setTransactions(Array.isArray(res.data) ? res.data : []);
     };
     fetchTransactions();
