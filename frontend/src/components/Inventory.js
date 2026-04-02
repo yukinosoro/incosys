@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { getStockStatus, getLowStockItems } from '../utils/stockAnalysis';
 import AlertBanner from './AlertBanner';
 
@@ -12,8 +12,6 @@ const Inventory = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [alertDismissed, setAlertDismissed] = useState(false);
   const location = useLocation();
-
-  const token = localStorage.getItem('token');
 
   useEffect(() => {
     fetchProducts();
@@ -28,10 +26,13 @@ const Inventory = () => {
 
   const fetchProducts = async () => {
     try {
-      const res = await axios.get('/products', { headers: { Authorization: `Bearer ${token}` } });
-      setProducts(res.data);
+      console.log('Fetching products from API:', process.env.REACT_APP_API_URL || 'http://localhost:5000');
+      const res = await api.get('/products');
+      setProducts(Array.isArray(res.data) ? res.data : []);
+      console.log('Fetched products:', res.data);
     } catch (error) {
-      console.error('Error fetching products:', error);
+      console.error('Error fetching products:', error.response?.data || error.message || error);
+      window.alert('Failed to fetch products. Check console for details.');
     }
   };
 
@@ -40,39 +41,50 @@ const Inventory = () => {
     setEditingId(null);
   };
 
+  const [feedback, setFeedback] = useState('');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
+      console.log('Submit product payload:', form);
+
       if (editingId) {
-        await axios.put(`/products/${editingId}`, {
+        await api.put(`/products/${editingId}`, {
           name: form.name,
           quantity: form.quantity,
           price: form.price,
           category: form.category,
           threshold: form.threshold
-        }, { headers: { Authorization: `Bearer ${token}` } });
+        });
+        setFeedback('Product updated successfully.');
       } else {
-        await axios.post('/products', form, { headers: { Authorization: `Bearer ${token}` } });
+        await api.post('/products', form);
+        setFeedback('Product added successfully.');
       }
 
-      await fetchProducts();
       resetForm();
+      await fetchProducts();
+
+      // clear transient feedback after 3s
+      setTimeout(() => setFeedback(''), 3000);
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error('Error submitting form:', error.response?.data || error.message || error);
+      setFeedback('Failed to submit product. Check console for details.');
     }
   };
 
   const handleDelete = async (id) => {
     try {
-      await axios.delete(`/products/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      await api.delete(`/products/${id}`);
       await fetchProducts();
 
       if (editingId === id) {
         resetForm();
       }
     } catch (error) {
-      console.error('Error deleting product:', error);
+      console.error('Error deleting product:', error.response?.data || error.message || error);
+      window.alert('Failed to delete product. Check console for details.');
     }
   };
 
@@ -120,6 +132,7 @@ const Inventory = () => {
       <div className="card">
         <h3>{editingId ? 'Edit Product' : 'Add New Product'}</h3>
         <form onSubmit={handleSubmit}>
+          {feedback && <div style={{ marginBottom: '0.8rem', color: '#44ff44' }}>{feedback}</div>}
           <div className="card-grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: '0.7rem' }}>
             <input
               className="neon-input"
