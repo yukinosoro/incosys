@@ -17,8 +17,5 @@
       "headers": { "cache-control": "public, max-age=0, s-maxage=0" },
       "dest": "/index.html"
     }
-  ],
-  "env": {
-    "REACT_APP_API_URL": "@react_app_api_url"
-  }
+  ]
 }
